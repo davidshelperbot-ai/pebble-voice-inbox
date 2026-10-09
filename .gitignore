@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.DS_Store
+# local operational state, never commit
+routes.toml
+*.db
+*.jsonl
+# local audio fixture for the integration test; record your own (docs/audio.md)
+tests/fixtures/

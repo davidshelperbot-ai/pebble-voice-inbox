@@ -1,0 +1,58 @@
+# Copy to ~/.config/voice-inbox/routes.toml and edit.
+#
+# Each [[route]] is a regex plus a handler name. Routes are tried in file order
+# and the first match wins; named groups are passed to the handler. Anything
+# nothing claims goes to [fallback].
+#
+# Check your work without speaking:   voice-inbox-routes --test "text alex hi"
+
+# --- send yourself somewhere else -----------------------------------------
+# `webhook` POSTs {"text", "source", "dictated_at", "groups"} to a URL.
+[[route]]
+name = "note to my own API"
+match = '^(?:note|remember)\s+(?P<body>.+)$'
+handler = "webhook"
+url = "https://example.com/notes"
+headers = { Authorization = "Bearer CHANGEME" }
+
+# --- run anything on your machine -----------------------------------------
+# `command` runs a program with the transcript on stdin, and named groups as
+# VOICE_GROUP_<NAME> env vars. Nothing dictated is ever put on a command line.
+[[route]]
+name = "add to my task list"
+match = '^(?:add|todo)\s+(?P<body>.+)$'
+handler = "command"
+command = ["/usr/local/bin/my-todo-script", "--add"]
+
+# A shell one-liner, if you prefer. $VOICE_TEXT holds the transcript.
+[[route]]
+name = "append to a file"
+match = '^journal\s+(?P<body>.+)$'
+handler = "command"
+shell = true
+command = 'printf "%s\n" "$VOICE_GROUP_BODY" >> "$HOME/journal.txt"'
+
+# --- macOS: send an iMessage ----------------------------------------------
+# Needs Messages.app signed in. Recipients come from this table, not your
+# address book: an unknown name is an error rather than a near match, because
+# texting the wrong person is the least recoverable thing this can do.
+[[route]]
+name = "text someone"
+match = '^(?:text|message)\s+(?P<who>\S+)\s+(?P<body>.+)$'
+handler = "imessage"
+contacts = { alex = "+15555550123", mum = "mum@example.com" }
+# account = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"   # see docs/handlers.md
+
+# --- Notion: create a page ------------------------------------------------
+[[route]]
+name = "new notion page"
+match = '^(?:create|make)\s+(?:a\s+)?(?:notion\s+)?page\s+(?:for|about|to)\s+(?P<title>.+)$'
+handler = "notion_page"
+parent = "00000000000000000000000000000000"   # a page id you shared with your integration
+# token = "secret_..."                        # or set NOTION_API_KEY
+
+# --- everything else -------------------------------------------------------
+# Without a fallback, unmatched speech is marked failed rather than guessed at.
+# `log` just prints it, which is a good default while you build up routes.
+[fallback]
+handler = "log"
